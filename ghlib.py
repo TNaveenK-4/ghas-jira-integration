@@ -4,7 +4,6 @@ import json
 import util
 from requests import HTTPError
 
-
 WEBHOOK_CONFIG = """
 {
     "url": "{url}",
@@ -70,28 +69,28 @@ class GitHub:
             )
 
     def create_org_hook(
-        self,
-        org,
-        url,
-        secret,
-        active=True,
-        events=["code_scanning_alert", "repository"],
-        insecure_ssl="0",
-        content_type="json",
+            self,
+            org,
+            url,
+            secret,
+            active=True,
+            events=["code_scanning_alert", "repository"],
+            insecure_ssl="0",
+            content_type="json",
     ):
         return self.create_hook_helper(
             org, url, secret, active, events, insecure_ssl, content_type
         )
 
     def create_hook_helper(
-        self,
-        entity,
-        url,
-        secret,
-        active=True,
-        events=["code_scanning_alert", "repository"],
-        insecure_ssl="0",
-        content_type="json",
+            self,
+            entity,
+            url,
+            secret,
+            active=True,
+            events=["code_scanning_alert", "repository"],
+            insecure_ssl="0",
+            content_type="json",
     ):
         if "/" in entity:
             etype = "repos"
@@ -132,13 +131,13 @@ class GHRepository:
         return self.gh.list_hooks_helper(self.repo_id)
 
     def create_hook(
-        self,
-        url,
-        secret,
-        active=True,
-        events=["code_scanning_alert", "repository"],
-        insecure_ssl="0",
-        content_type="json",
+            self,
+            url,
+            secret,
+            active=True,
+            events=["code_scanning_alert", "repository"],
+            insecure_ssl="0",
+            content_type="json",
     ):
         return self.gh.create_hook_helper(
             self.repo_id, url, secret, active, events, insecure_ssl, content_type
@@ -264,6 +263,12 @@ class AlertBase:
     def can_transition(self):
         return True
 
+    def get_file_name(self) -> str:
+        return "DEFAULT"
+
+    def get_last_committer(self) -> str:
+        return "DEFAULT"
+
     def get_key(self):
         raise NotImplementedError
 
@@ -316,6 +321,34 @@ class Alert(AlertBase):
             timeout=util.REQUEST_TIMEOUT,
         )
         resp.raise_for_status()
+
+    def get_file_name(self) -> str:
+        logging.debug("Getting file name for alert {alert_num}".format(alert_num=self.number()))
+        logging.debug("Alert JSON: {json}".format(json=self.json))
+        # file_name = self.json.get("file", {}).get("path", "")
+        file_name = self.json.get('most_recent_instance', {}).get('location', {}).get('path', 'Unknown')
+        return file_name
+
+    def get_last_committer(self) -> str:
+        # This information is not directly available in the alert JSON
+        # We need to fetch it from the commit API
+        most_recent_instance = self.json.get('most_recent_instance', {})
+        commit_sha = most_recent_instance.get('commit_sha')
+        if not commit_sha:
+            return 'Unknown'
+
+        resp = requests.get(
+            f"{self.gh.url}/repos/{self.github_repo.repo_id}/commits/{commit_sha}",
+            headers=self.gh.default_headers(),
+            timeout=util.REQUEST_TIMEOUT,
+        )
+        if resp.status_code == 200:
+            commit_data = resp.json()
+            logging.debug(f"Commit data: {commit_data}")
+            last_committer = commit_data.get('commit', {}).get('author', {}).get('name', 'Unknown')
+            return last_committer
+        else:
+            return 'Unknown'
 
 
 class Secret(AlertBase):

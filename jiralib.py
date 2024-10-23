@@ -29,6 +29,8 @@ ALERT_TYPE={alert_type}
 ALERT_NUMBER={alert_num}
 REPOSITORY_KEY={repo_key}
 ALERT_KEY={alert_key}
+FILE_NAME={file_name}
+LAST_COMMITTER={last_committer}
 """
 
 
@@ -175,13 +177,17 @@ class JiraProject:
         alert_num,
         repo_key,
         alert_key,
+        file_name="Unknown",
+        last_committer="Unknown"
     ):
-        raw = self.j.create_issue(
-            project=self.projectkey,
-            summary="{prefix} {short_desc} in {repo}".format(
-                prefix=TITLE_PREFIXES[alert_type], short_desc=short_desc, repo=repo_id
+        issue_dict = {
+            "project": self.projectkey,
+            "summary": "{prefix} {short_desc} in {repo}".format(
+                prefix=TITLE_PREFIXES[alert_type],
+                short_desc=short_desc,
+                repo=repo_id
             ),
-            description=DESC_TEMPLATE.format(
+            "description": DESC_TEMPLATE.format(
                 long_desc=long_desc,
                 alert_url=alert_url,
                 repo_id=repo_id,
@@ -189,10 +195,17 @@ class JiraProject:
                 alert_num=alert_num,
                 repo_key=repo_key,
                 alert_key=alert_key,
+                file_name=file_name,  # Add file name to description
+                last_committer=last_committer  # Add committer to description
             ),
-            issuetype={"name": "Bug"},
-            labels=self.labels,
-        )
+            "issuetype": {"name": "Bug"},
+            "labels": self.labels,
+        }
+        jira_assignee = self.fetch_jira_assignee(last_committer)
+        if jira_assignee:
+            issue_dict["assignee"] = {"accountId": jira_assignee.get('accountId')}
+
+        raw = self.j.create_issue(**issue_dict)
         logger.info(
             "Created issue {issue_key} for alert {alert_num} in {repo_id}.".format(
                 issue_key=raw.key, alert_num=alert_num, repo_id=repo_id
@@ -208,6 +221,34 @@ class JiraProject:
         )
 
         return JiraIssue(self, raw)
+
+    def fetch_jira_assignee(self, last_committer) -> dict:
+        jira_assignee = None
+        try:
+            query = last_committer.replace(' ', '+')
+            resp = requests.get(
+                f"{self.jira.url}/rest/api/2/user/search/?query={query}",
+                headers={
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                },
+                auth=self.jira.auth(),
+                timeout=util.REQUEST_TIMEOUT
+            )
+            resp.raise_for_status()
+            users = resp.json()
+
+            logger.debug(f"Found {users} JIRA users for committer {last_committer}")
+            if users:
+                exact_matches = [u for u in users if u.get("displayName").lower() == last_committer.lower()]
+                if exact_matches:
+                    jira_assignee = exact_matches[0]
+                else:
+                    jira_assignee = users[0]
+        except Exception as e:
+            logger.warning(f"Failed to find JIRA assignee for committer {last_committer}: {str(e)}")
+        logger.info(f"JIRA assignee for committer {last_committer}: {jira_assignee}")
+        return jira_assignee
 
     def fetch_issues(self, key):
         issue_search = 'project={jira_project} and description ~ "{key}"'.format(
