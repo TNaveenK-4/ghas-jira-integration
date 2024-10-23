@@ -201,16 +201,8 @@ class JiraProject:
             "issuetype": {"name": "Bug"},
             "labels": self.labels,
         }
-        jira_assignee = self.fetch_jira_assignee(last_committer)
-        if jira_assignee:
-            issue_dict["assignee"] = {"accountId": jira_assignee.get('accountId')}
 
         raw = self.j.create_issue(**issue_dict)
-        logger.info(
-            "Created issue {issue_key} for alert {alert_num} in {repo_id}.".format(
-                issue_key=raw.key, alert_num=alert_num, repo_id=repo_id
-            )
-        )
         logger.info(
             "Created issue {issue_key} for {alert_type} {alert_num} in {repo_id}.".format(
                 issue_key=raw.key,
@@ -221,34 +213,6 @@ class JiraProject:
         )
 
         return JiraIssue(self, raw)
-
-    def fetch_jira_assignee(self, last_committer) -> dict:
-        jira_assignee = None
-        try:
-            query = last_committer.replace(' ', '+')
-            resp = requests.get(
-                f"{self.jira.url}/rest/api/2/user/search/?query={query}",
-                headers={
-                    "Accept": "application/json",
-                    "Content-Type": "application/json"
-                },
-                auth=self.jira.auth(),
-                timeout=util.REQUEST_TIMEOUT
-            )
-            resp.raise_for_status()
-            users = resp.json()
-
-            logger.debug(f"Found {users} JIRA users for committer {last_committer}")
-            if users:
-                exact_matches = [u for u in users if u.get("displayName").lower() == last_committer.lower()]
-                if exact_matches:
-                    jira_assignee = exact_matches[0]
-                else:
-                    jira_assignee = users[0]
-        except Exception as e:
-            logger.warning(f"Failed to find JIRA assignee for committer {last_committer}: {str(e)}")
-        logger.info(f"JIRA assignee for committer {last_committer}: {jira_assignee}")
-        return jira_assignee
 
     def fetch_issues(self, key):
         issue_search = 'project={jira_project} and description ~ "{key}"'.format(
