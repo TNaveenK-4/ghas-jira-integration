@@ -238,8 +238,8 @@ class JiraProject:
                 exact_matches = [u for u in users if u.get("displayName").lower() == last_committer.lower()]
                 if exact_matches:
                     jira_assignee = exact_matches[0]
-                # else:
-                #     jira_assignee = users[0]
+                else:
+                    jira_assignee = users[0]
         except Exception as e:
             logger.warning(f"Failed to find JIRA assignee for committer {last_committer}: {str(e)}")
         logger.info(f"JIRA assignee for committer {last_committer}: {jira_assignee}")
