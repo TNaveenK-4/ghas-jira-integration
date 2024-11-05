@@ -1,0 +1,51 @@
+{
+  'number': 1,
+  'created_at': '2024-10-23T10:20:32Z',
+  'updated_at': '2024-10-23T10:20:34Z',
+  'url': 'https://api.github.com/repos/naveen-uppala/customer/code-scanning/alerts/1',
+  'html_url': 'https://github.com/naveen-uppala/customer/security/code-scanning/1',
+  'state': 'open',
+  'fixed_at': None,
+  'dismissed_by': None,
+  'dismissed_at': None,
+  'dismissed_reason': None,
+  'dismissed_comment': None,
+  'rule': {
+    'id': 'java/xss',
+    'severity': 'error',
+    'description': 'Cross-site scripting',
+    'name': 'java/xss',
+    'tags': [
+      'external/cwe/cwe-079',
+      'security'
+    ],
+    'full_description': 'Writing user input directly to a web page allows for a cross-site scripting vulnerability.',
+    'help': '# Cross-site scripting\nDirectly writing user input (for example, an HTTP request parameter) to a web page, without properly sanitizing the input first, allows for a cross-site scripting vulnerability.\n\n\n## Recommendation\nTo guard against cross-site scripting, consider using contextual output encoding/escaping before writing user input to the page, or one of the other solutions that are mentioned in the reference.\n\n\n## Example\nThe following example shows the `page` parameter being written directly to the page, leaving the website vulnerable to cross-site scripting.\n\n\n```java\npublic class XSS extends HttpServlet {\n\tprotected void doGet(HttpServletRequest request, HttpServletResponse response)\n\tthrows ServletException, IOException {\n\t\t// BAD: a request parameter is written directly to the Servlet response stream\n\t\tresponse.getWriter().print(\n\t\t\t\t"The page \\"" + request.getParameter("page") + "\\" was not found.");\n\n\t}\n}\n\n```\n\n## References\n* OWASP: [XSS (Cross Site Scripting) Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).\n* Wikipedia: [Cross-site scripting](http://en.wikipedia.org/wiki/Cross-site_scripting).\n* Common Weakness Enumeration: [CWE-79](https://cwe.mitre.org/data/definitions/79.html).\n',
+    'security_severity_level': 'medium'
+  },
+  'tool': {
+    'name': 'CodeQL',
+    'guid': None,
+    'version': '2.19.2'
+  },
+  'most_recent_instance': {
+    'ref': 'refs/heads/main',
+    'analysis_key': 'dynamic/github-code-scanning/codeql:analyze',
+    'environment': '{"build-mode":"none","category":"/language:java-kotlin","language":"java-kotlin","runner":"[\\"ubuntu-latest\\"]"}',
+    'category': '/language:java-kotlin',
+    'state': 'open',
+    'commit_sha': '718cfa126cd6e7e263877b5d32c5bd5a07557502',
+    'message': {
+      'text': 'Cross-site scripting vulnerability due to a user-provided value.'
+    },
+    'location': {
+      'path': 'src/main/java/com/naveen/packersmovers/controller/PackersMoversController.java',
+      'start_line': 32,
+      'end_line': 32,
+      'start_column': 16,
+      'end_column': 32
+    },
+    'classifications': []
+  },
+  'instances_url': 'https://api.github.com/repos/naveen-uppala/customer/code-scanning/alerts/1/instances'
+}
